@@ -66,7 +66,17 @@ def main(a):
     # stubs on pads that are no longer connected in the schematic
     nc = [p for fp in b.GetFootprints() for p in fp.Pads() if p.GetNetname().startswith('unconnected-')]
     def mid(t): return pcbnew.VECTOR2I((t.GetStart().x + t.GetEnd().x) // 2, (t.GetStart().y + t.GetEnd().y) // 2)
-    doomed = [t for t in b.Tracks() if t.GetClass() == 'PCB_TRACK' and any(p.HitTest(t.GetStart()) or p.HitTest(t.GetEnd()) or p.HitTest(mid(t)) for p in nc)]
+    import math
+    def seg_dist(t, q):  # distance from point q to segment t
+        a, c = t.GetStart(), t.GetEnd(); ax, ay, cx, cy = a.x, a.y, c.x, c.y
+        L2 = (cx - ax) ** 2 + (cy - ay) ** 2
+        if L2 == 0: return math.hypot(q.x - ax, q.y - ay)
+        u = max(0, min(1, ((q.x - ax) * (cx - ax) + (q.y - ay) * (cy - ay)) / L2))
+        return math.hypot(q.x - (ax + u * (cx - ax)), q.y - (ay + u * (cy - ay)))
+    def touches(t, p):
+        r = max(p.GetSize().x, p.GetSize().y) / 2 + t.GetWidth() / 2 + 100000  # pad half-size + track half-width + 0.1 mm
+        return seg_dist(t, p.GetPosition()) < r
+    doomed = [t for t in b.Tracks() if t.GetClass() == 'PCB_TRACK' and any(touches(t, p) for p in nc)]
     for t in doomed: b.Delete(t)
     for z in b.Zones():
         z.SetIslandRemovalMode(pcbnew.ISLAND_REMOVAL_MODE_ALWAYS)   # KiCad reports kept islands as unconnected
