@@ -44,8 +44,12 @@ def add_track(p, q, layer_id, net, w=nm(0.127)):
     t = pcbnew.PCB_TRACK(b); t.SetStart(p); t.SetEnd(q); t.SetWidth(w); t.SetLayer(layer_id); t.SetNet(b.FindNet(net)); b.Add(t)
 def add_via(p, net):
     v = pcbnew.PCB_VIA(b); v.SetPosition(p); v.SetWidth(nm(0.45)); v.SetDrill(nm(0.3)); v.SetLayerPair(pcbnew.F_Cu, pcbnew.B_Cu); v.SetNet(b.FindNet(net)); b.Add(v)
+RULE_AREAS = [z for z in b.Zones() if z.GetIsRuleArea() and (z.GetDoNotAllowVias() or z.GetDoNotAllowTracks())]
+def in_keepout(p):
+    return any(z.Outline().Contains(p) for z in RULE_AREAS)
 def clean_spot(p, net, radius=nm(0.45 / 2 + 0.16)):
-    """True if no pad/track/via of another net lies within radius of p (any layer)."""
+    """True if no pad/track/via of another net lies within radius of p (any layer) and p is outside every via keep-out."""
+    if in_keepout(p): return False
     for fp in b.GetFootprints():
         for pd in fp.Pads():
             if pd.GetNetname() != net and dist(pd.GetPosition(), p) < radius + max(pd.GetSize().x, pd.GetSize().y) / 2: return False
