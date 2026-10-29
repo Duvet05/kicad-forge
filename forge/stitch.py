@@ -51,7 +51,7 @@ def clean_spot(p, net, radius=nm(0.45 / 2 + 0.16)):
             if pd.GetNetname() != net and dist(pd.GetPosition(), p) < radius + max(pd.GetSize().x, pd.GetSize().y) / 2: return False
     for t in b.Tracks():
         if t.GetNetname() == net: continue
-        if t.GetClass() == 'PCB_VIA' and dist(t.GetPosition(), p) < radius + t.GetWidth() / 2: return False
+        if t.GetClass() == 'PCB_VIA' and dist(t.GetPosition(), p) < radius + t.GetWidth(pcbnew.F_Cu) / 2: return False
         if t.GetClass() == 'PCB_TRACK' and seg_dist(t, p) < radius + t.GetWidth() / 2: return False
     return True
 def find_pad(desc):
