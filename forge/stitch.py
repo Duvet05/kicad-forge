@@ -98,6 +98,43 @@ for u in d['unconnected_items']:
                 if clean_spot(q, net):
                     add_via(q, net); add_track(p, q, pcbnew.F_Cu if pad.IsOnLayer(pcbnew.F_Cu) else pcbnew.B_Cu, net); n['plane'] += 1; r = None; break
             if r is None: break
+# --- missing vias: tracks of one net on different layers ending at the same point with no via there
+ends = {}
+for t in tracks():
+    for e in (t.GetStart(), t.GetEnd()):
+        ends.setdefault((t.GetNetname(), e.x // 1000, e.y // 1000), set()).add(t.GetLayer())
+vias_at = {(v.GetNetname(), v.GetPosition().x // 1000, v.GetPosition().y // 1000) for v in b.Tracks() if v.GetClass() == 'PCB_VIA'}
+n['missing_via'] = 0
+for k, layers in ends.items():
+    if len(layers) >= 2 and k not in vias_at:
+        q = V(k[1] * 1000, k[2] * 1000)
+        if clean_spot(q, k[0], radius=nm(0.45 / 2 + 0.127)): add_via(q, k[0]); n['missing_via'] += 1
+# --- pad <-> track of the same net within GAP (nearest end of any track on the pad's layer)
+for u in d['unconnected_items']:
+    items = u['items']; descs = [i['description'] for i in items]; net = net_of(descs[0])
+    kinds = ['track' if x.startswith(('Pista', 'Track')) else 'pad' if x.startswith('Pad') else 'other' for x in descs]
+    if sorted(kinds) != ['pad', 'track']: continue
+    pad = find_pad(descs[kinds.index('pad')]); pp = pad.GetPosition()
+    cands = [(dist(e, pp), e, t) for t in tracks(net) if pad.IsOnLayer(t.GetLayer()) for e in (t.GetStart(), t.GetEnd())]
+    if cands:
+        dd, e, t = min(cands)
+        if 0 < dd <= nm(GAP) and not pad.HitTest(e): add_track(e, pp, t.GetLayer(), net, t.GetWidth()); n['pad'] += 1
+# --- vias too close to the board edge: nudge inward
+n['edge'] = 0
+bb = b.GetBoardEdgesBoundingBox(); EDGE = nm(0.3 + 0.45 / 2 + 0.02)
+for v in b.Tracks():
+    if v.GetClass() != 'PCB_VIA': continue
+    p = v.GetPosition(); nx, ny = p.x, p.y
+    if p.x - bb.GetX() < EDGE: nx = bb.GetX() + EDGE
+    if bb.GetRight() - p.x < EDGE: nx = bb.GetRight() - EDGE
+    if p.y - bb.GetY() < EDGE: ny = bb.GetY() + EDGE
+    if bb.GetBottom() - p.y < EDGE: ny = bb.GetBottom() - EDGE
+    if (nx, ny) != (p.x, p.y):
+        q = V(nx, ny)
+        for t in tracks(v.GetNetname()):
+            if t.GetStart() == p: t.SetStart(q)
+            if t.GetEnd() == p: t.SetEnd(q)
+        v.SetPosition(q); n['edge'] += 1
 # --- islands of plane-net zones with no via: a via inside
 for z in b.Zones():
     if z.GetNetname() not in planes: continue
