@@ -1,0 +1,9 @@
+#!/usr/bin/env bash
+HERE="$(cd "$(dirname "$0")/.." && pwd)"; cmd="${1:-}"; shift || true
+case "$cmd" in
+  route) exec "$HERE/forge/route.sh" "$@";;
+  check) exec "$HERE/forge/check.sh" "$@";;
+  fab)   exec "$HERE/forge/fab.sh" "$@";;
+  part)  exec "$HERE/forge/part.sh" "$@";;
+  *) echo "usage: forge {route|check|fab|part} ..."; exit 2;;
+esac

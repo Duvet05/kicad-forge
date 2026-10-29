@@ -1,0 +1,7 @@
+.cache/
+lib/
+*.dsn
+*.ses
+*.drc.json
+*.erc.json
+*-backups/

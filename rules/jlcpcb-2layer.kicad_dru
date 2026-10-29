@@ -1,0 +1,7 @@
+(version 1)
+# JLCPCB 1/2-layer standard capabilities (transcribed 2026-10; verify at jlcpcb.com/capabilities)
+(rule "jlc2 track and clearance" (constraint track_width (min 0.127mm)) (constraint clearance (min 0.127mm)))
+(rule "jlc2 via" (condition "A.Type == 'Via'") (constraint hole_size (min 0.3mm)) (constraint via_diameter (min 0.6mm)))
+(rule "jlc2 edge" (constraint edge_clearance (min 0.3mm)))
+(rule "jlc2 hole to hole" (constraint hole_to_hole (min 0.5mm)))
+(rule "jlc2 silk" (constraint silk_clearance (min 0.15mm)))

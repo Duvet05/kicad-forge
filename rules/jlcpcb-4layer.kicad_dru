@@ -1,0 +1,7 @@
+(version 1)
+# JLCPCB 4/6-layer standard capabilities (transcribed 2026-10; verify at jlcpcb.com/capabilities)
+(rule "jlc4 track and clearance" (constraint track_width (min 0.09mm)) (constraint clearance (min 0.09mm)))
+(rule "jlc4 via" (condition "A.Type == 'Via'") (constraint hole_size (min 0.2mm)) (constraint via_diameter (min 0.45mm)))
+(rule "jlc4 edge" (constraint edge_clearance (min 0.3mm)))
+(rule "jlc4 hole to hole" (constraint hole_to_hole (min 0.5mm)))
+(rule "jlc4 silk" (constraint silk_clearance (min 0.15mm)))
