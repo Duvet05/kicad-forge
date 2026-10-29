@@ -13,8 +13,11 @@ JAVA="${JAVA:-}"; for j in /opt/homebrew/opt/openjdk/libexec/openjdk.jdk/Content
 [ -f "$JAR" ] || curl -sSL -o "$JAR" "https://github.com/freerouting/freerouting/releases/download/v$FR_VER/freerouting-$FR_VER.jar"
 W="$(mktemp -d)"; DSN="$W/board.dsn"; SES="$W/board.ses"
 "$KIPY" "$HERE/forge/dsn.py" export "$PCB" "$DSN" 2>&1 | grep -v "create wxApp"
+# KiCad writes the netclass clearance; the board-level clearance (default 0.2 mm) is what DRC enforces
+CLEAR_UM="${CLEAR_UM:-200}"; sed -i.bak "s/(clearance 127)/(clearance $CLEAR_UM)/g" "$DSN"
 [ "${KEEP_COPPER:-1}" = "1" ] && sed -i.bak 's/(type route)/(type protect)/g' "$DSN" && echo "protected $(grep -c "(type protect)" "$DSN") existing copper items"
 # -de design in, -do session out, -mp max passes, -oit stop optimizing when <0.1 % better, -mt threads
 "$JAVA" -Djava.awt.headless=true -jar "$JAR" -de "$DSN" -do "$SES" -mp "$PASSES" -oit 0.1 -mt 4 2>&1 | grep -vE '^\s*$' | tail -20
-"$KIPY" "$HERE/forge/dsn.py" import "$PCB" "$SES" "$OUT" 2>&1 | grep -v "create wxApp"
+# merge only the new copper (protected items are skipped), drop stubs on NC pads, refill zones
+"$KIPY" "$HERE/forge/ses_merge.py" "$PCB" "$SES" "$OUT" 2>&1 | grep -v -e "create wxApp" -e "memory leak"
 echo "routed -> $OUT (work dir $W)"
