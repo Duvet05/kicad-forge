@@ -14,7 +14,7 @@ What it does, with zero paid services:
 | DRC + ERC with JLCPCB's capabilities as rules | kicad-cli | `bin/forge check board.kicad_pcb` |
 | Gerbers, drill, BOM, CPL, STEP for JLCPCB | kicad-cli | `bin/forge fab board.kicad_pcb out/` |
 
-Requirements: KiCad 9 or 10 (macOS app bundle or `kicad-cli` on PATH), Java 21, `uv`.
+Requirements: KiCad 9 or 10 (macOS app bundle or `kicad-cli` on PATH), Java 25 or newer (`brew install openjdk`), `uv`.
 Freerouting's jar is downloaded on first use into `~/.cache/kicad-forge/`.
 
 JLCPCB rules in `rules/` are transcribed from jlcpcb.com/capabilities; re-check them before an
