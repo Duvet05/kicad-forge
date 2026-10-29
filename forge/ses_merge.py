@@ -33,8 +33,11 @@ def find_deep(node, name):
 
 def main(a):
     src, ses, dst = a[1], a[2], a[3]
-    min_w = float(a[4]) if len(a) > 4 else 0.127
+    min_w = float(a[4]) if len(a) > 4 and not a[4].startswith('--') else 0.127
+    replace = set(a[a.index('--replace') + 1].split(',')) if '--replace' in a else set()
     b = pcbnew.LoadBoard(src)
+    for t in list(b.Tracks()):
+        if t.GetNetname() in replace: b.Delete(t)
     tree = parse(tokenize(open(ses, encoding='utf-8', errors='replace').read()))
     root = tree[0]
     res = next(find_deep(root, 'resolution'))
@@ -50,7 +53,7 @@ def main(a):
         name = net[1]; ni = netinfo(name)
         if ni is None: print('net not on board:', name); continue
         for w in find(net, 'wire'):
-            if any(x[0] == 'type' and x[1] in ('protect', 'fix') for x in w if isinstance(x, list)): skipped += 1; continue
+            if any(x[0] == 'type' and x[1] in ('protect', 'fix') for x in w if isinstance(x, list)) and name not in replace: skipped += 1; continue
             path = next(find(w, 'path')); layer = path[1]; width_nm = int(float(path[2]) * scale)
             width_nm = max(width_nm, int(min_w * 1e6))
             pts = [P(path[i], path[i + 1]) for i in range(3, len(path) - 1, 2)]
@@ -59,7 +62,7 @@ def main(a):
                 if p0 == p1: continue
                 t = pcbnew.PCB_TRACK(b); t.SetStart(p0); t.SetEnd(p1); t.SetWidth(width_nm); t.SetLayer(lid); t.SetNet(ni); b.Add(t); added_t += 1
         for v in find(net, 'via'):
-            if any(x[0] == 'type' and x[1] in ('protect', 'fix') for x in v if isinstance(x, list)): skipped += 1; continue
+            if any(x[0] == 'type' and x[1] in ('protect', 'fix') for x in v if isinstance(x, list)) and name not in replace: skipped += 1; continue
             m = re.search(r'_(\d+):(\d+)_um', v[1]); dia, drill = (int(m.group(1)) * 1000, int(m.group(2)) * 1000) if m else (450000, 300000)
             via = pcbnew.PCB_VIA(b); via.SetPosition(P(v[2], v[3])); via.SetWidth(dia); via.SetDrill(drill)
             via.SetLayerPair(pcbnew.F_Cu, pcbnew.B_Cu); via.SetNet(ni); b.Add(via); added_v += 1
