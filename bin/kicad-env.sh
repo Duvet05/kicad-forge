@@ -1,6 +1,11 @@
 # Locates KiCad's own tools. Source it: . bin/kicad-env.sh
-KICAD_APP="${KICAD_APP:-/Applications/KiCad/KiCad.app/Contents}"
-if command -v kicad-cli >/dev/null 2>&1; then KICAD_CLI="$(command -v kicad-cli)"; else KICAD_CLI="$KICAD_APP/MacOS/kicad-cli"; fi
-KIPY="${KIPY:-$KICAD_APP/Frameworks/Python.framework/Versions/Current/bin/python3}"
-[ -x "$KIPY" ] || KIPY="$(command -v python3)"
-export KICAD_CLI KIPY
+for app in "${KICAD_APP:-}" "$HOME/Applications/KiCad/KiCad.app/Contents" "/Applications/KiCad/KiCad.app/Contents"; do
+  [ -n "$app" ] && [ -x "$app/MacOS/kicad-cli" ] && { KICAD_APP="$app"; break; }
+done
+if [ -n "${KICAD_APP:-}" ]; then
+  KICAD_CLI="$KICAD_APP/MacOS/kicad-cli"
+  KIPY="$(ls -d "$KICAD_APP"/Frameworks/Python.framework/Versions/[0-9]* 2>/dev/null | tail -1)/bin/python3"
+else
+  KICAD_CLI="$(command -v kicad-cli)"; KIPY="$(command -v python3)"
+fi
+export KICAD_APP KICAD_CLI KIPY
