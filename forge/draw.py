@@ -39,6 +39,14 @@ for tr in s.get('tracks', []):
         t = pcbnew.PCB_TRACK(b); t.SetStart(p); t.SetEnd(q); t.SetWidth(nm(tr.get('width', 0.127))); t.SetLayer(b.GetLayerID(tr['layer'])); t.SetNet(b.FindNet(tr['net'])); b.Add(t)
 for v in s.get('vias', []):
     via = pcbnew.PCB_VIA(b); via.SetPosition(V(v['x'], v['y'])); via.SetWidth(nm(v.get('d', 0.45))); via.SetDrill(nm(v.get('drill', 0.3))); via.SetLayerPair(pcbnew.F_Cu, pcbnew.B_Cu); via.SetNet(b.FindNet(v['net'])); b.Add(via)
+for mv in s.get('move_vias', []):
+    src_p, dst_p = V(*mv['from']), V(*mv['to'])
+    for t in b.Tracks():
+        if t.GetNetname() != mv['net']: continue
+        if t.GetClass() == 'PCB_VIA' and abs(t.GetPosition().x - src_p.x) < 20000 and abs(t.GetPosition().y - src_p.y) < 20000: t.SetPosition(dst_p)
+        elif t.GetClass() == 'PCB_TRACK':
+            if abs(t.GetStart().x - src_p.x) < 20000 and abs(t.GetStart().y - src_p.y) < 20000: t.SetStart(dst_p)
+            if abs(t.GetEnd().x - src_p.x) < 20000 and abs(t.GetEnd().y - src_p.y) < 20000: t.SetEnd(dst_p)
 pcbnew.ZONE_FILLER(b).Fill(b.Zones())
 pcbnew.SaveBoard(dst, b)
 print(f"draw: cleared {cleared} items, moved {len(s.get('moves',{}))}, tracks {sum(len(t['pts'])-1 for t in s.get('tracks',[]))}, vias {len(s.get('vias',[]))} -> {dst}")
