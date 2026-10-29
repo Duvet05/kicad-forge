@@ -13,6 +13,7 @@ What it does, with zero paid services:
 | Export the board to Specctra, route the open connections, import the result | pcbnew API + Freerouting | `bin/forge route board.kicad_pcb` |
 | DRC + ERC with JLCPCB's capabilities as rules | kicad-cli | `bin/forge check board.kicad_pcb` |
 | Gerbers, drill, BOM, CPL, STEP for JLCPCB | kicad-cli | `bin/forge fab board.kicad_pcb out/` |
+| Merge a Freerouting session, stitch leftovers, DRC summary | pcbnew API | `forge/finish.sh base.kicad_pcb run.ses out [FREE_NETS]` |
 
 Requirements: KiCad 9 or 10 (macOS app bundle or `kicad-cli` on PATH), Java 25 or newer (`brew install openjdk`), `uv`.
 Freerouting's jar is downloaded on first use into `~/.cache/kicad-forge/`.
