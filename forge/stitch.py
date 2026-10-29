@@ -110,7 +110,7 @@ for t in tracks():
 vias_at = {(v.GetNetname(), v.GetPosition().x // 1000, v.GetPosition().y // 1000) for v in b.Tracks() if v.GetClass() == 'PCB_VIA'}
 n['missing_via'] = 0
 for k, layers in ends.items():
-    if len(layers) >= 2 and k not in vias_at:
+    if len(layers) >= 2 and k not in vias_at and k[0] not in planes:
         q = V(k[1] * 1000, k[2] * 1000)
         if clean_spot(q, k[0], radius=nm(0.45 / 2 + 0.127)): add_via(q, k[0]); n['missing_via'] += 1
 # --- pad <-> track of the same net within GAP (nearest end of any track on the pad's layer)

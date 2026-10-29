@@ -66,17 +66,13 @@ def main(a):
             m = re.search(r'_(\d+):(\d+)_um', v[1]); dia, drill = (int(m.group(1)) * 1000, int(m.group(2)) * 1000) if m else (450000, 300000)
             via = pcbnew.PCB_VIA(b); via.SetPosition(P(v[2], v[3])); via.SetWidth(dia); via.SetDrill(drill)
             via.SetLayerPair(pcbnew.F_Cu, pcbnew.B_Cu); via.SetNet(ni); b.Add(via); added_v += 1
-    # stubs on pads that are no longer connected in the schematic
-    nc = [p for fp in b.GetFootprints() for p in fp.Pads() if p.GetNetname().startswith('unconnected-')]
-    def mid(t): return pcbnew.VECTOR2I((t.GetStart().x + t.GetEnd().x) // 2, (t.GetStart().y + t.GetEnd().y) // 2)
-    # only tracks that END on a now-unconnected pad (the old stub); anything else is left to stitch.py + DRC
-    doomed = [t for t in b.Tracks() if t.GetClass() == 'PCB_TRACK' and any(p.HitTest(t.GetStart()) or p.HitTest(t.GetEnd()) for p in nc)]
-    for t in doomed: b.Delete(t)
+    # (stubs left on pads that were disconnected after routing are handled by stitch.py from the DRC's shorting_items)
+    doomed = []
     for z in b.Zones():
         z.SetIslandRemovalMode(pcbnew.ISLAND_REMOVAL_MODE_ALWAYS)   # KiCad reports kept islands as unconnected
     pcbnew.ZONE_FILLER(b).Fill(b.Zones())
     pcbnew.SaveBoard(dst, b)
-    print(f"merged {added_t} track segments + {added_v} vias (skipped {skipped} protected), removed {len(doomed)} stubs on NC pads, zones refilled -> {dst}")
+    print(f"merged {added_t} track segments + {added_v} vias (skipped {skipped} protected), zones refilled -> {dst}")
 
 if __name__ == '__main__':
     sys.exit(main(sys.argv))
