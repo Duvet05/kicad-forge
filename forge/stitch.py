@@ -61,7 +61,10 @@ def clean_spot(p, net, radius=nm(0.45 / 2 + 0.16)):
 def find_pad(desc):
     m = re.match(r'Pad (\S+) \[[^\]]+\] (?:de|of) (\S+)', desc); fp = b.FindFootprintByReference(m.group(2))
     return next(p for p in fp.Pads() if p.GetNumber() == m.group(1))
-n = dict(gap=0, via=0, pad=0, plane=0, island=0, short=0)
+n = dict(gap=0, via=0, pad=0, plane=0, island=0, short=0, orphan=0)
+# tracks/vias KiCad re-labelled to an unconnected-* net are leftovers of a pin that was disconnected: drop them
+for t in list(b.Tracks()):
+    if t.GetNetname().startswith('unconnected-'): b.Delete(t); n['orphan'] += 1
 # --- shorts on NC pads (delete the offending track)
 for v in d.get('violations', []):
     if v['type'] != 'shorting_items' or not any('[unconnected-' in i['description'] for i in v['items']): continue
@@ -86,7 +89,7 @@ for u in d['unconnected_items']:
         pi = kinds.index('pad'); oi = 1 - pi; pad = find_pad(descs[pi])
         if kinds[oi] == 'via':
             vpos = pos_of(items[oi])
-            if dist(vpos, pad.GetPosition()) <= nm(GAP): add_track(vpos, pad.GetPosition(), pcbnew.F_Cu if pad.IsOnLayer(pcbnew.F_Cu) else pcbnew.B_Cu, net); n['pad'] += 1
+            if dist(vpos, pad.GetPosition()) <= nm(1.2): add_track(vpos, pad.GetPosition(), pcbnew.F_Cu if pad.IsOnLayer(pcbnew.F_Cu) else pcbnew.B_Cu, net); n['pad'] += 1
         else:
             t = track_at(net, layer_of(descs[oi]), pos_of(items[oi]))
             if t and pad.IsOnLayer(t.GetLayer()):
@@ -125,7 +128,7 @@ for u in d['unconnected_items']:
         if 0 < dd <= nm(GAP) and not pad.HitTest(e): add_track(e, pp, t.GetLayer(), net, t.GetWidth()); n['pad'] += 1
 # --- vias too close to the board edge: nudge inward
 n['edge'] = 0
-bb = b.GetBoardEdgesBoundingBox(); EDGE = nm(0.3 + 0.45 / 2 + 0.02)
+bb = b.GetBoardEdgesBoundingBox(); EDGE = nm(0.3 + 0.45 / 2 + 0.1)
 for v in b.Tracks():
     if v.GetClass() != 'PCB_VIA': continue
     p = v.GetPosition(); nx, ny = p.x, p.y
