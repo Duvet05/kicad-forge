@@ -46,7 +46,19 @@ for u in d['unconnected_items']:
         vpos = pcbnew.VECTOR2I(int(p.x + dx / L * nm(0.75)), int(p.y + dy / L * nm(0.75)))
         v = pcbnew.PCB_VIA(b); v.SetPosition(vpos); v.SetWidth(nm(0.45)); v.SetDrill(nm(0.3)); v.SetLayerPair(pcbnew.F_Cu, pcbnew.B_Cu); v.SetNet(b.FindNet(net)); b.Add(v)
         t = pcbnew.PCB_TRACK(b); t.SetStart(p); t.SetEnd(vpos); t.SetWidth(nm(0.127)); t.SetLayer(pad.GetLayer() if pad.IsOnLayer(pcbnew.F_Cu) else pcbnew.F_Cu); t.SetNet(b.FindNet(net)); b.Add(t); vias += 1
+# tracks the DRC says short a now-unconnected pad: delete them (the leftover of a pin disconnected after routing)
+shorts = 0
+for v in d.get('violations', []):
+    if v['type'] != 'shorting_items': continue
+    descs = [i['description'] for i in v['items']]
+    if not any('[unconnected-' in x for x in descs): continue
+    for it in v['items']:
+        if not (it['description'].startswith('Pista') or it['description'].startswith('Track')): continue
+        q = pos_of(it)
+        for t in list(b.Tracks()):
+            if t.GetClass() == 'PCB_TRACK' and math.hypot(t.GetStart().x - q.x, t.GetStart().y - q.y) < nm(0.01):
+                b.Delete(t); shorts += 1; break
 for z in b.Zones(): z.SetIslandRemovalMode(pcbnew.ISLAND_REMOVAL_MODE_ALWAYS)
 pcbnew.ZONE_FILLER(b).Fill(b.Zones())
 pcbnew.SaveBoard(dst, b)
-print(f"stitch: {joined} gaps joined, {vias} vias added -> {dst}")
+print(f"stitch: {joined} gaps joined, {vias} vias added, {shorts} shorting stubs removed -> {dst}")
