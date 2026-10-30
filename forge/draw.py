@@ -33,6 +33,16 @@ for ref in s.get('pad1_down', []):
     for rot in (90, 270, 0, 180):
         fp.SetOrientationDegrees(rot)
         if pads['1'].GetPosition().y > pads['2'].GetPosition().y and abs(pads['1'].GetPosition().x - pads['2'].GetPosition().x) < 1000: break
+for ref in s.get('pad1_up', []):
+    fp = b.FindFootprintByReference(ref); pads = {p.GetNumber(): p for p in fp.Pads()}
+    for rot in (270, 90, 180, 0):
+        fp.SetOrientationDegrees(rot)
+        if pads['1'].GetPosition().y < pads['2'].GetPosition().y and abs(pads['1'].GetPosition().x - pads['2'].GetPosition().x) < 1000: break
+for seg in s.get('delete', []):          # [[x1,y1],[x2,y2]] track or [x,y] via, any net
+    pts = [V(*p) for p in seg] if isinstance(seg[0], list) else [V(*seg)]
+    for t in list(b.Tracks()):
+        if len(pts) == 2 and t.GetClass() == 'PCB_TRACK' and {(t.GetStart().x // 20000, t.GetStart().y // 20000), (t.GetEnd().x // 20000, t.GetEnd().y // 20000)} == {(pts[0].x // 20000, pts[0].y // 20000), (pts[1].x // 20000, pts[1].y // 20000)}: b.Delete(t); cleared += 1
+        if len(pts) == 1 and t.GetClass() == 'PCB_VIA' and abs(t.GetPosition().x - pts[0].x) < 20000 and abs(t.GetPosition().y - pts[0].y) < 20000: b.Delete(t); cleared += 1
 for tr in s.get('tracks', []):
     pts = [V(*p) for p in tr['pts']]
     for p, q in zip(pts, pts[1:]):
